@@ -28,7 +28,7 @@ def minimal_http_server options={}
   elsif File.directory? './http'
     $http_dir="http/"
   else
-    $http_dir = File.join( Gem.loaded_specs['mqtt-sn-ruby'].full_gem_path, 'http/')
+    $http_dir = File.join( Gem.loaded_specs['minimal-http-ruby'].full_gem_path, 'http/')
   end
   puts "Serving pages from home directory: '#{$http_dir}'"
   statuses={ "200" => "OK", "404" => "Not Found", "500" => "Internal Server Error"}
