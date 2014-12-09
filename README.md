@@ -3,7 +3,7 @@ minimal-http-ruby
 
 Minimal Http Server Class with Ryby: Haml &amp; Coffeescript &amp; SSE &amp; AJAX -- well under 200 lines of code!
 
-The server will run it it's own thread, without messing your code any extra EventMachine -style dependencies. 
+The server will run it it's own thread, without messing your code any extra EventMachine -style dependencies.
 
 You can easily access realtime data with AJAX and SSE -- they will see your main application's global variables.
 
@@ -20,7 +20,7 @@ require 'minimal-http-ruby'
 
 minimal_http_server http_port: 8088, http_path: "./http/"
 
-loop do #or whatever you need to do 
+loop do #or whatever you need to do
 	sleep 1
 end
 ```
@@ -42,7 +42,7 @@ def json_demo request,args,session,event
 end
 ```
 
-- Use **SSE** :  This goes like AJAX, but instead of returning "application/json", you should specify: "text/event-stream" -- the server knows now to keep this stream open. You can make your script sleep for few seconds, that will be the Event Period -- the server sleeps one extra second for safety. Example here: 
+- Use **SSE** :  This goes like AJAX, but instead of returning "application/json", you should specify: "text/event-stream" -- the server knows now to keep this stream open. You can make your script sleep for few seconds, that will be the Event Period -- the server sleeps one extra second for safety. Example here:
 
 ``` ruby
 # encode: UTF-8
@@ -73,8 +73,12 @@ retry: 1000
 data: {"now":1417014649}
 ```
 
+### Initialization:
+
+To get started, you can run utility ```minimal-http-init.rb``` -- It will create all directories and initial index.haml in your current directory!
+
 ##Coming Next:
 - better cache control
 - factoring source
 - cleanup
-- make class? not really necessary 
+- make class? not really necessary
