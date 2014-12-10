@@ -77,6 +77,10 @@ data: {"now":1417014649}
 
 To get started, you can run utility ```minimal-http-init.rb``` -- It will create all directories and initial index.haml in your current directory!
 
+### Testing:
+
+You can easily start the server in any directory with command ```minimal-http.rb```. Use --help option to find out how to change port and http-path ;)
+
 ##Coming Next:
 - better cache control
 - factoring source

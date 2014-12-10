@@ -30,6 +30,9 @@ def minimal_http_server options={}
   else
     $http_dir = File.join( Gem.loaded_specs['minimal-http-ruby'].full_gem_path, 'http/')
   end
+  if not File.directory? $http_dir
+    puts "Warning: Http-path does not exist? -- Please create and populate!\nYou can use utility 'minimal-http-init.rb'"
+  end
   puts "Serving pages from home directory: '#{$http_dir}'"
   statuses={ "200" => "OK", "404" => "Not Found", "500" => "Internal Server Error"}
   Thread.new(options[:http_port],options[:app_name]) do |http_port,http_app|
@@ -44,7 +47,7 @@ def minimal_http_server options={}
           client_ip= client.peeraddr[2]
           raw=client.gets
           if not raw
-            puts "#{client_ip}:#{client_port} #{Time.now.iso8601} ?? nil request?"
+            puts "#{client_ip}:#{client_port} #{Time.now.iso8601} ?? nil request?" if options[:verbose]
             client.close
             next
           end
@@ -84,7 +87,7 @@ def minimal_http_server options={}
               response=cache[fn]
             end
           elsif req[/^\/(.+)\.json$/] and File.file?(fn="#{$http_dir}json#{req.gsub('.json','.rb')}")
-            req[/\/(.+).json$/] 
+            req[/\/(.+).json$/]
             act=$1
             t=File.mtime(fn)
             if not prev_t[fn] or prev_t[fn]<t
@@ -130,14 +133,13 @@ def minimal_http_server options={}
             client.print "Content-Length: #{response.bytesize}\r\n"
             client.print "Connection: close\r\n"
             client.print "\r\n"
-            client.print response 
+            client.print response
           else
             client.print "Expires: -1\r\n"
             client.print "\r\n"
             begin
               my_session=client.peeraddr[1]
               if not @http_sessions[my_session]
-                #puts "**************** new port #{my_session}"
                 @http_sessions[my_session]={client_port:client.peeraddr[1],client_ip:client.peeraddr[2] , log_position:0 }
               end
               my_event=0
@@ -150,7 +152,7 @@ def minimal_http_server options={}
                   puts "#{e.backtrace[0..2]}"
                   pp e.backtrace
                   response=[{act: :error, msg:"Error executing JSON",alert: "Syntax error '#{e}' in '#{fn}'"}].to_json
-                end 
+                end
                 if not response or response==[] or response=={}
                 else
                   client.print  "retry: 1000\n"
@@ -159,13 +161,15 @@ def minimal_http_server options={}
                 sleep 1
                 break if my_event>100
               end
+            rescue Errno::EPIPE
+              #quite normal ;)
             rescue => e
               puts "stream #{client} died #{e}"
               pp e.backtrace
             end
           end
           dur=sprintf "%.2f",(Time.now.to_f-@start.to_f)
-          puts "#{client_ip}:#{client_port} #{Time.now.iso8601} \"#{method} #{req}\" #{status} #{response.bytesize} \"#{type}\" #{dur}"
+          puts "#{client_ip}:#{client_port} #{Time.now.iso8601} \"#{method} #{req}\" #{status} #{response.bytesize} \"#{type}\" #{dur}" if options[:verbose]
           client.close
         rescue Exception =>e
           response="Error '#{e}'"
