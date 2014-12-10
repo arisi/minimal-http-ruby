@@ -10,7 +10,8 @@ require 'uri'
 require 'ipaddr'
 require 'time'
 require 'thread'
-
+require 'mimemagic'
+require "fcntl"
 
 
 def minimal_http_server options={}
@@ -53,11 +54,24 @@ def minimal_http_server options={}
           end
           raw=raw.chop
           method,req,http_proto = raw.split " "
+          puts "method:#{method}"
+          pp req
           status="200"
           type="text/html"
           req="/#{http_app||'index'}.html" if req=="/" or req=="/index.htm" or req=="/index.html"
-          req,argss=req.split "\?"
           args={}
+          argss=nil
+          if method=="GET"
+            req,argss=req.split "\?"
+          else
+            len=0
+            while line = client.gets
+              puts "POST>#{line}"
+              len=$1.to_i  if line[/Content-Length: (\d+)/]
+              break if line=="\r\n"
+            end
+            argss=client.readpartial(len)
+          end
           if argss
             argss.split("&").each do |a|
               if a
@@ -114,7 +128,7 @@ def minimal_http_server options={}
               response=response.to_json
              end
           elsif File.file?(fnc="#{$http_dir}#{req}")
-            type="text/css" if req[/\.css$/]
+            type=MimeMagic.by_path(req)
             t=File.mtime(fnc)
             if not prev_t[fnc] or prev_t[fnc]<t
               contents = File.read(fnc)

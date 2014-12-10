@@ -9,6 +9,9 @@ You can easily access realtime data with AJAX and SSE -- they will see your main
 
 Great for adding HTTP-debug page to any small app, with the luxory of Coffeescript & Haml.
 
+## New feautures:
+- Handles now POST too
+
 ## Note!!
 Please, do not serve pages to internets with this server -- ABSOLUTELY NO SECURITY!
 

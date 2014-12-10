@@ -1,9 +1,9 @@
 Gem::Specification.new do |s|
   s.name        = 'minimal-http-ruby'
-  s.version     = '0.0.9'
+  s.version     = '0.0.10'
   s.date        = '2014-12-10'
-  s.summary     = "Minimal Http Server Coffeescript,Ajax,Haml,SSE"
-  s.description = "Minimal Http Server Class with Ryby: Haml & Coffeescript & SSE & AJAX -- well under 200 lines of code!"
+  s.summary     = "Minimal Http Threaded Server Coffeescript,Ajax,Haml,SSE"
+  s.description = "Minimal Http Threaded Server with Ryby: Haml, Coffeescript, SSE, AJAX -- well under 200 lines of code!"
   s.authors     = ["Ari Siitonen"]
   s.email       = 'jalopuuverstas@gmail.com'
   s.files       = ["lib/minimal-http-ruby.rb", "examples/server.rb"]
