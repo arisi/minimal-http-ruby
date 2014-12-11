@@ -11,7 +11,7 @@ require 'ipaddr'
 require 'time'
 require 'thread'
 require 'mimemagic'
-require "fcntl"
+require 'cgi'
 
 
 def minimal_http_server options={}
@@ -70,15 +70,25 @@ def minimal_http_server options={}
               len=$1.to_i  if line[/Content-Length: (\d+)/]
               break if line=="\r\n"
             end
-            argss=client.readpartial(len)
+            argss=""
+            while argss.size<len
+              argss+=client.readpartial(len-argss.size)
+              puts argss
+            end
+            #argss=URI.decode(argss)
+            puts argss
           end
           if argss
             argss.split("&").each do |a|
+              puts "found '#{a}'"
               if a
-                k,v=URI.decode(a).force_encoding("UTF-8").split "="
-                args[k]=v
+                k,v=CGI.unescape(a).split "="
+                #args[k]=CGI.unescape(CGI.unescape(v)) #.force_encoding("UTF-8")
+                args[k]=v #CGI.unescape(v) #.force_encoding("UTF-8")
+                puts "'#{v}' --> #{args[k]}"
               end
             end
+            pp args
           end
           if req[/\.html$/] and File.file?(fn="#{$http_dir}haml#{req.gsub('.html','.haml')}")
             contents = File.read(fn) # never cached -- may be dynamically generated
@@ -194,6 +204,7 @@ def minimal_http_server options={}
           client.print "HTTP/1.1 #{status} #{statuses[status]||'???'}\r\nContent-Type: #{type}\r\n\r\n"
           client.print response
           client.close
+          puts e
           pp e.backtrace
         end
       end
