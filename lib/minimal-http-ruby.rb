@@ -13,6 +13,7 @@ require 'thread'
 require 'mimemagic'
 require 'cgi'
 
+$sessions={}
 
 def minimal_http_server options={}
   prev_t={}
@@ -54,8 +55,8 @@ def minimal_http_server options={}
           end
           raw=raw.chop
           method,req,http_proto = raw.split " "
-          puts "method:#{method}"
-          pp req
+          #puts "method:#{method}"
+          #pp req
           status="200"
           type="text/html"
           req="/#{http_app||'index'}.html" if req=="/" or req=="/index.htm" or req=="/index.html"
@@ -80,15 +81,27 @@ def minimal_http_server options={}
           end
           if argss
             argss.split("&").each do |a|
-              puts "found '#{a}'"
+              #puts ">>><found '#{a}'"
               if a
-                k,v=CGI.unescape(a).split "="
+                k,v=a.split "="
+                next if not v
+                next if not k
+                k=CGI.unescape(k).force_encoding("UTF-8")
+                v=CGI.unescape(v).force_encoding("UTF-8")
                 #args[k]=CGI.unescape(CGI.unescape(v)) #.force_encoding("UTF-8")
-                args[k]=v #CGI.unescape(v) #.force_encoding("UTF-8")
-                puts "'#{v}' --> #{args[k]}"
+                if k[/(.+)\[\]$/]
+                  #puts "IS ARRAY--------------------- #{k} #{$1}"
+                  args[$1]=[] if not args[$1]
+                  args[$1]<<v
+                else
+                  args[k]=v #CGI.unescape(v) #.force_encoding("UTF-8")
+                end
+                #puts "'#{v}' --> #{args[k]}"
               end
             end
-            pp args
+            #puts "args:"
+            #pp args
+            #puts "------"
           end
           if req[/\.html$/] and File.file?(fn="#{$http_dir}haml#{req.gsub('.html','.haml')}")
             contents = File.read(fn) # never cached -- may be dynamically generated
@@ -99,10 +112,12 @@ def minimal_http_server options={}
             if not prev_t[fn] or prev_t[fn]<t
               contents = File.read(fn)
               begin
-                response=CoffeeScript.compile contents
+                response=CoffeeScript.compile contents.force_encoding("UTF-8")
                 prev_t[fn]=t
                 cache[fn]=response
               rescue => e
+                puts "**** COFFEE #{fn} failed:  #{e}"
+                pp e.backtrace
                 type="text/html"
                 status="500"
                 response="Coffee Compile error: #{e}"
@@ -129,13 +144,13 @@ def minimal_http_server options={}
             if type!="text/event-stream" and status=="200"
               begin
                 type,response=eval "json_#{act} [method,req,http_proto],args,0,0"  #event handlers get called with zero session => init :)
+                response=response.to_json
               rescue => e
                 puts "**** AJAX EXEC #{fn} failed:  #{e}"
                 pp e.backtrace
                 response=[{act: :error, msg:"Error executing JSON",alert: "Syntax error '#{e}' in '#{fn}'"}].to_json
                 type="application/json"
               end
-              response=response.to_json
              end
           elsif File.file?(fnc="#{$http_dir}#{req}")
             type=MimeMagic.by_path(req)
@@ -156,16 +171,20 @@ def minimal_http_server options={}
           if type!="text/event-stream"
             client.print "Content-Length: #{response.bytesize}\r\n"
             client.print "Connection: close\r\n"
+            client.print "Access-Control-Allow-Origin: *\r\n"
             client.print "\r\n"
             client.print response
           else
             client.print "Expires: -1\r\n"
+            client.print "Access-Control-Allow-Origin: *\r\n"
             client.print "\r\n"
+            my_session=nil
             begin
               my_session=client.peeraddr[1]
               if not @http_sessions[my_session]
                 @http_sessions[my_session]={client_port:client.peeraddr[1],client_ip:client.peeraddr[2] , log_position:0 }
               end
+              $sessions[my_session]={}
               my_event=0
               loop do
                 begin
@@ -182,14 +201,18 @@ def minimal_http_server options={}
                   client.print  "retry: 1000\n"
                   client.print  "data: #{response.to_json}\n\n"
                 end
-                sleep 1
-                break if my_event>100
+                sleep 0.001
+                break if my_event>10000
               end
             rescue Errno::EPIPE
               #quite normal ;)
             rescue => e
               puts "stream #{client} died #{e}"
               pp e.backtrace
+            end
+            if my_session and $sessions[my_session] and $sessions[my_session][:thread] and $sessions[my_session][:thread].status
+              puts "HEY SOMETHING WAS RUNNING"
+              $sessions[my_session][:thread].kill
             end
           end
           dur=sprintf "%.2f",(Time.now.to_f-@start.to_f)
